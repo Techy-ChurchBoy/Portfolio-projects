@@ -72,8 +72,9 @@ export function buildColliders(spec) {
 }
 
 // Things the visitor can use with E. "panel" opens a page panel; "sit" seats the visitor.
-function buildInteractables() {
+function buildInteractables(spec) {
   const d = INTERIOR.ticketDesk;
+  const stand = spec.stands[0];
   const items = [
     { id: 'tickets', label: 'Buy tickets', kind: 'panel', panel: 'booking', box: d, range: 8 },
     { id: 'board', label: 'Check departures', kind: 'panel', panel: 'board', at: INTERIOR.board, range: 16 },
@@ -81,6 +82,8 @@ function buildInteractables() {
   for (const z of INTERIOR.benches) {
     items.push({ id: `bench${z}`, label: 'Sit down', kind: 'sit', at: { x: 59, z }, yaw: Math.PI / 2, range: 6 });
   }
+  items.push({ id: 'security', label: 'Security check', kind: 'action', at: { x: -102, z: 0 }, range: 7 });
+  items.push({ id: 'boarding', label: 'Board flight', kind: 'action', at: { x: stand[0] + 30, z: stand[1] }, range: 9 });
   return items;
 }
 
@@ -94,9 +97,10 @@ const distTo = (item, x, z) => {
 
 // root: the walk overlay (holds [data-k] pad buttons, a [data-exit] button and the prompt).
 // onOpen(panelId) is called when the visitor uses a panel item; onExit() when they press Esc.
-export function createWalker({ canvas, spec, root, prompt, onExit, onOpen }) {
+// game (optional): { label(id), run(id) } for the security and boarding actions.
+export function createWalker({ canvas, spec, root, prompt, onExit, onOpen, game }) {
   const colliders = buildColliders(spec);
-  const interactables = buildInteractables();
+  const interactables = buildInteractables(spec);
   const held = new Set(); // 'f' 'b' 'l' 'r' 'sprint', from keys or the pad
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const s = {
@@ -139,6 +143,7 @@ export function createWalker({ canvas, spec, root, prompt, onExit, onOpen }) {
     const item = nearest();
     if (!item) return;
     if (item.kind === 'sit') sit(item);
+    else if (item.kind === 'action') game?.run(item.id);
     else onOpen?.(item.panel);
   }
 
@@ -264,7 +269,7 @@ export function createWalker({ canvas, spec, root, prompt, onExit, onOpen }) {
       if (prompt) {
         const item = s.paused ? null : s.seated ? { label: 'Stand up' } : nearest();
         prompt.hidden = !item;
-        if (item) prompt.textContent = `E · ${item.label}`;
+        if (item) prompt.textContent = `E · ${(item.kind === 'action' && game?.label(item.id)) || item.label}`;
       }
     },
   };

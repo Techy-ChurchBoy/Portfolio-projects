@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { LOS } from './airports/los.js';
 import { buildWorld } from './world.js';
 import { createWalker } from './walk.js';
+import { loadTicket, saveTicket } from './ticket.js';
 import { $ } from './ui.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -90,11 +91,67 @@ export async function startScene() {
   }
   document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closePanel));
 
+  // Short messages over the walk (ticket, security and boarding feedback).
+  const toastEl = $('#walkToast');
+  let toastTimer = 0;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (toastEl.hidden = true), 2800);
+  }
+
+  // The boarding pass card, shown once the visitor boards.
+  const endEl = $('#boardingEnd');
+  function showBoarding(t) {
+    $('#passRoute').textContent = `${t.from}  →  ${t.to}`;
+    $('#passMeta').textContent = [`Gate ${t.gate}`, t.cabin, t.pax, `Ref ${t.code}`].join(' · ');
+    endEl.hidden = false;
+    document.body.classList.add('card-open');
+    walk.pause(true);
+  }
+  function closeBoarding() {
+    if (endEl.hidden) return;
+    endEl.hidden = true;
+    document.body.classList.remove('card-open');
+    walk.pause(false);
+  }
+  endEl.querySelector('[data-close-end]').addEventListener('click', closeBoarding);
+
+  // Actions behind the security station and the boarding point at the parked plane.
+  const game = {
+    label(id) {
+      const t = loadTicket();
+      if (id === 'security') return t?.securityPassed ? 'Security cleared' : 'Security check';
+      if (id === 'boarding') return t?.boarded ? 'Boarded' : 'Board flight';
+      return null;
+    },
+    run(id) {
+      const t = loadTicket();
+      if (id === 'security') {
+        if (!t) return toast('Buy a ticket at the desk first.');
+        if (t.securityPassed) return toast('Security is cleared. Head out through the west doors to your gate.');
+        t.securityPassed = true;
+        saveTicket(t);
+        return toast('Security cleared. Head out through the west doors to your gate.');
+      }
+      if (id === 'boarding') {
+        if (!t) return toast('No ticket yet. Buy one at the desk.');
+        if (!t.securityPassed) return toast('Clear security first.');
+        if (t.boarded) return toast('You are already on board.');
+        t.boarded = true;
+        saveTicket(t);
+        return showBoarding(t);
+      }
+    },
+  };
+
   const walk = createWalker({
     canvas,
     spec: LOS,
     root: $('#walkUI'),
     prompt: $('#walkPrompt'),
+    game,
     onOpen: showPanel,
     onExit: () => {
       if (openPanel) closePanel();
@@ -105,6 +162,7 @@ export async function startScene() {
   function setWalking(on) {
     if (on === walk.active) return;
     closePanel();
+    closeBoarding();
     if (on) walk.enable();
     else walk.disable();
     document.body.classList.toggle('walking', on);

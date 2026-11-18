@@ -1,4 +1,5 @@
 import { AIRPORTS, DESTINATIONS, SERVICES } from './data.js';
+import { issueTicket } from './ticket.js';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -73,7 +74,9 @@ export function initUI() {
   });
 
   $('#continueBtn').addEventListener('click', () => {
-    $('#formErr').textContent = 'Concept preview: checkout is not connected.';
+    const [from, to] = $('#planRoute').textContent.split('→').map((x) => x.trim());
+    const t = issueTicket({ from, to, dep: $('#dep').value, pax: $('#pax').value, cabin: $('#cabin').value });
+    $('#formErr').textContent = `Ticket ${t.code} issued. Clear security, then head out to gate ${t.gate}.`;
   });
 
   // Instalment illustration

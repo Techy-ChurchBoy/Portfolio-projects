@@ -21,6 +21,7 @@
 
 <div class="hint" id="hint" aria-hidden="true">Scroll to descend · Drag to look around</div>
 
+<div class="walk-toast" id="walkToast" role="status" hidden></div>
 <div class="walk-ui" id="walkUI" role="group" aria-label="Walk controls" hidden>
   <div class="walk-prompt" id="walkPrompt" aria-live="polite" hidden></div>
   <div class="pad">
@@ -32,6 +33,19 @@
   </div>
   <button type="button" class="chip exit" data-exit>Exit walk</button>
 </div>
+
+<section class="boarding-end" id="boardingEnd" aria-label="Boarding pass" hidden>
+  <div class="panel">
+    <div class="kicker">Boarding</div>
+    <h2>You're on board</h2>
+    <div class="pass">
+      <div id="passRoute" class="pass-route"></div>
+      <div id="passMeta" class="pass-meta"></div>
+    </div>
+    <p class="note">Your progress is saved in this browser.</p>
+    <button type="button" class="btn amber" data-close-end style="margin-top:16px">Back to the apron</button>
+  </div>
+</section>
 
 <main id="main">
   <section class="leg" id="hero">
@@ -70,7 +84,7 @@
       <div class="plan" id="plan" hidden>
         <div class="route" id="planRoute"></div>
         <div class="meta" id="planMeta"></div>
-        <button class="btn blue" type="button" id="continueBtn">Continue to checkout</button>
+        <button class="btn blue" type="button" id="continueBtn">Issue ticket</button>
       </div>
       <p class="note">Concept preview. Fares and availability shown are samples.</p>
     </div>
