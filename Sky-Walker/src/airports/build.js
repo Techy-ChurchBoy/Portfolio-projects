@@ -213,9 +213,11 @@ export function buildAirport(spec, { makePlane, brand } = {}) {
   }
 
   const labels = [];
+  const gateBoards = [];
   group.traverse((o) => {
     if (o.userData.isLabel) labels.push(o);
+    if (o.userData.gateBoard) gateBoards.push(o.userData.gateBoard);
   });
 
-  return { group, hall, parked, labels };
+  return { group, hall, parked, labels, gateBoards };
 }

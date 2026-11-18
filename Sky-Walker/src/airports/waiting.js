@@ -4,7 +4,48 @@ import * as THREE from 'three';
 // on its airside (west) wall, rows of benches and a short sign. waitingLayout is shared by the
 // renderer here and the walk colliders and sit spots in src/walk.js, so what you see is what you touch.
 
+import { ticketStatus } from '../ticket.js';
+
 export const WAIT_DOOR = 6; // half width of the doorway, in world units
+
+// A board on the north wall, facing the benches, showing the visitor's ticket and status.
+export function makeGateBoard() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const g = canvas.getContext('2d');
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(60, 30),
+    new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }),
+  );
+
+  function draw(t) {
+    const st = ticketStatus(t);
+    g.fillStyle = '#03091a';
+    g.fillRect(0, 0, 1024, 512);
+    g.fillStyle = '#ffb547';
+    g.font = '700 40px Sora, sans-serif';
+    g.fillText('YOUR FLIGHT', 40, 60);
+    if (t) {
+      g.fillStyle = '#eef3ff';
+      g.font = '700 64px Sora, sans-serif';
+      g.fillText(`${t.from}  →  ${t.to}`, 40, 170);
+      g.fillStyle = '#7f93bd';
+      g.font = '600 28px "JetBrains Mono", monospace';
+      g.fillText(`GATE ${t.gate}     REF ${t.code}`, 40, 230);
+    }
+    g.fillStyle = st.tone;
+    g.font = '700 56px Sora, sans-serif';
+    g.fillText(st.text, 40, 340);
+    g.fillStyle = '#a3b4d6';
+    g.font = '600 28px "JetBrains Mono", monospace';
+    g.fillText(st.sub, 40, 410);
+    tex.needsUpdate = true;
+  }
+  return { mesh, draw };
+}
 
 // Benches in a 3 × 4 grid across the hall, centred on the terminal.
 export function waitingLayout(t) {
@@ -66,6 +107,11 @@ export function buildWaitingHall(t) {
     post.position.set(-W / 2, (H * 0.6) / 2, sign * (WAIT_DOOR + 1));
     g.add(post);
   }
+
+  const gateBoard = makeGateBoard();
+  gateBoard.mesh.position.set(0, 20, -D / 2 + 3);
+  g.add(gateBoard.mesh);
+  g.userData.gateBoard = gateBoard;
 
   // Benches: a seat and a backrest, long side along x.
   const benchMat = new THREE.MeshStandardMaterial({ color: 0x2b3a5c, roughness: 0.6, metalness: 0.2 });

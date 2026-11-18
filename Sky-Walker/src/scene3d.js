@@ -5,7 +5,7 @@ import gsap from 'gsap';
 import { LOS } from './airports/los.js';
 import { buildWorld } from './world.js';
 import { createWalker } from './walk.js';
-import { loadTicket, saveTicket } from './ticket.js';
+import { loadTicket, saveTicket, WAIT_CALL } from './ticket.js';
 import { $ } from './ui.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -117,9 +117,6 @@ export async function startScene() {
     walk.pause(false);
   }
   endEl.querySelector('[data-close-end]').addEventListener('click', closeBoarding);
-
-  // Seconds of sitting in a waiting hall before the boarding call goes out.
-  const WAIT_CALL = 20;
 
   // Actions behind the security station and the boarding point at the parked plane.
   const game = {
@@ -271,12 +268,18 @@ export async function startScene() {
   const pos = new THREE.Vector3();
   const tgt = new THREE.Vector3();
   let lastBoard = 0;
+  let lastGate = 0;
 
   renderer.setAnimationLoop(() => {
     const now = performance.now();
     const secs = now / 1000;
     const dt = Math.min(0.05, clock.getDelta());
     world.update(secs);
+    if (now - lastGate > 500) {
+      lastGate = now;
+      const t = loadTicket();
+      for (const gb of world.gateBoards) gb.draw(t);
+    }
     if (now - lastBoard > 160) {
       lastBoard = now;
       board.draw(now);
