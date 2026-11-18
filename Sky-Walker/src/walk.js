@@ -13,6 +13,7 @@ const DOOR = 6; // half width of each hall doorway (about 24 m across)
 const SPEED = 6; // units per second, about 12 m/s
 const SPRINT = 2;
 const FOV = 70;
+const SCRIPT_SPEED = 5; // units per second along a scripted route
 
 // The area a visitor can roam: the apron, the parallel taxiway and the runway edge.
 export const WALK_BOUNDS = { minX: -560, maxX: 330, minZ: -950, maxZ: 520 };
@@ -117,8 +118,43 @@ export function createWalker({ canvas, spec, root, prompt, onExit, onOpen, game 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const s = {
     active: false, paused: false, seated: false,
-    x: 0, z: 0, yaw: 0, pitch: 0, vx: 0, vz: 0, t: 0, drag: false, sx: 0, sy: 0,
+    x: 0, z: 0, y: 0, yaw: 0, pitch: 0, vx: 0, vz: 0, t: 0, drag: false, sx: 0, sy: 0,
   };
+  // A scripted route (for example, up the boarding stairs) that ignores walls.
+  let script = null; // { pts, i, u, done }
+
+  // Moves along the scripted route; calls done() at the end.
+  function stepScript(dt) {
+    let left = SCRIPT_SPEED * dt;
+    while (left > 0 && script.i < script.pts.length - 1) {
+      const a = script.pts[script.i];
+      const b = script.pts[script.i + 1];
+      const seg = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) || 1e-6;
+      const rem = seg - script.u;
+      if (left >= rem) {
+        left -= rem;
+        script.i++;
+        script.u = 0;
+      } else {
+        script.u += left;
+        left = 0;
+      }
+    }
+    const last = script.i >= script.pts.length - 1;
+    const a = script.pts[Math.min(script.i, script.pts.length - 2)];
+    const b = script.pts[Math.min(script.i + 1, script.pts.length - 1)];
+    const seg = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) || 1e-6;
+    const f = last ? 1 : script.u / seg;
+    s.x = a.x + (b.x - a.x) * f;
+    s.y = a.y + (b.y - a.y) * f;
+    s.z = a.z + (b.z - a.z) * f;
+    if (Math.hypot(b.x - a.x, b.z - a.z) > 0.01) s.yaw = Math.atan2(b.x - a.x, b.z - a.z);
+    if (last) {
+      const done = script.done;
+      script = null;
+      done?.();
+    }
+  }
 
   const blocked = (x, z) => {
     const b = WALK_BOUNDS;
@@ -226,17 +262,32 @@ export function createWalker({ canvas, spec, root, prompt, onExit, onOpen, game 
       return s.seated;
     },
     enable() {
-      Object.assign(s, { active: true, seated: false, ...START, vx: 0, vz: 0, pitch: 0, drag: false });
+      script = null;
+      Object.assign(s, { active: true, seated: false, ...START, y: 0, vx: 0, vz: 0, pitch: 0, drag: false });
       held.clear();
       root.hidden = false;
     },
     disable() {
+      script = null;
       Object.assign(s, { active: false, seated: false, drag: false });
       held.clear();
       root.hidden = true;
     },
     stand() {
       if (s.seated) stand();
+    },
+    // Walk a scripted route from where the visitor stands. Input is frozen until it ends.
+    scripted(points, done) {
+      script = { pts: [{ x: s.x, y: s.y, z: s.z }, ...points], i: 0, u: 0, done };
+      Object.assign(s, { vx: 0, vz: 0, drag: false, paused: true });
+      held.clear();
+    },
+    // Put the visitor at a spot on the ground (after a scripted route).
+    place(x, z, yaw) {
+      Object.assign(s, { x, z, y: 0, yaw, vx: 0, vz: 0, seated: false });
+    },
+    get scripting() {
+      return !!script;
     },
     // While a page panel is open the walk is frozen and the keys are left to the panel.
     pause(on) {
@@ -245,7 +296,8 @@ export function createWalker({ canvas, spec, root, prompt, onExit, onOpen, game 
       s.drag = false;
     },
     update(dt, camera) {
-      const frozen = s.paused || s.seated;
+      if (script) stepScript(dt);
+      const frozen = s.paused || s.seated || !!script;
       const fwd = frozen ? 0 : (held.has('f') ? 1 : 0) - (held.has('b') ? 1 : 0);
       const side = frozen ? 0 : (held.has('r') ? 1 : 0) - (held.has('l') ? 1 : 0);
       const len = Math.hypot(fwd, side) || 1;
@@ -271,7 +323,7 @@ export function createWalker({ canvas, spec, root, prompt, onExit, onOpen, game 
       // Seated time (waiting for the boarding call) is reported to the game.
       if (s.seated) game?.tick?.(dt);
       const moving = Math.min(1, Math.hypot(s.vx, s.vz) / SPEED);
-      const base = s.seated ? SEAT_EYE : EYE;
+      const base = (s.seated ? SEAT_EYE : EYE) + s.y;
       const eye = base + (reduce || s.seated ? 0 : Math.sin(s.t * 9) * 0.035 * moving);
       const cp = Math.cos(s.pitch);
       camera.position.set(s.x, eye, s.z);

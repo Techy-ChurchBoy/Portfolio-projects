@@ -6,6 +6,7 @@ import { LOS } from './airports/los.js';
 import { buildWorld } from './world.js';
 import { createWalker } from './walk.js';
 import { loadTicket, saveTicket, WAIT_CALL } from './ticket.js';
+import { buildBoarding, boardingRoute } from './airports/boarding.js';
 import { $ } from './ui.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -101,6 +102,29 @@ export async function startScene() {
     toastTimer = setTimeout(() => (toastEl.hidden = true), 2800);
   }
 
+  // Boarding stairs and the cabin for the first stand. The aircraft is hidden while the visitor boards.
+  const boarding = buildBoarding(LOS.stands[0]);
+  world.group.add(boarding.group);
+  let boardingActive = false;
+  function startBoarding(t) {
+    boardingActive = true;
+    world.planes[0].visible = false;
+    boarding.cabin.visible = true;
+    toast('Boarding. Follow the stairs up.');
+    walk.scripted(boardingRoute(LOS.stands[0]), () => {
+      boardingActive = false;
+      showBoarding(t);
+    });
+  }
+  // Put the aircraft back and the visitor on the apron, by the boarding point.
+  function endBoarding() {
+    boardingActive = false;
+    world.planes[0].visible = true;
+    boarding.cabin.visible = false;
+    const [sx, sz] = LOS.stands[0];
+    walk.place(sx + 30, sz, -Math.PI / 2);
+  }
+
   // The boarding pass card, shown once the visitor boards.
   const endEl = $('#boardingEnd');
   function showBoarding(t) {
@@ -114,6 +138,7 @@ export async function startScene() {
     if (endEl.hidden) return;
     endEl.hidden = true;
     document.body.classList.remove('card-open');
+    endBoarding();
     walk.pause(false);
   }
   endEl.querySelector('[data-close-end]').addEventListener('click', closeBoarding);
@@ -158,7 +183,7 @@ export async function startScene() {
         if (!t.called) return toast('Boarding has not been called yet. Sit and wait in a waiting hall.');
         t.boarded = true;
         saveTicket(t);
-        return showBoarding(t);
+        return startBoarding(t);
       }
     },
   };
@@ -180,6 +205,7 @@ export async function startScene() {
     if (on === walk.active) return;
     closePanel();
     closeBoarding();
+    if (boardingActive) endBoarding();
     if (on) walk.enable();
     else walk.disable();
     document.body.classList.toggle('walking', on);

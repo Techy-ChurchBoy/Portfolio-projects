@@ -182,5 +182,5 @@ export function buildWorld(spec, aircraftModel) {
     });
   }
 
-  return { group: scene, update, hall: airport.hall, labels: airport.labels, gateBoards: airport.gateBoards };
+  return { group: scene, update, hall: airport.hall, labels: airport.labels, gateBoards: airport.gateBoards, planes: airport.parked };
 }
