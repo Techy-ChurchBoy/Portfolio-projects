@@ -268,6 +268,8 @@ export function createWalker({ canvas, spec, root, prompt, onExit, onOpen, game 
       else s.z = nz;
 
       s.t += dt;
+      // Seated time (waiting for the boarding call) is reported to the game.
+      if (s.seated) game?.tick?.(dt);
       const moving = Math.min(1, Math.hypot(s.vx, s.vz) / SPEED);
       const base = s.seated ? SEAT_EYE : EYE;
       const eye = base + (reduce || s.seated ? 0 : Math.sin(s.t * 9) * 0.035 * moving);

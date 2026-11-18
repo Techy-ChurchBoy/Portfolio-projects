@@ -118,12 +118,31 @@ export async function startScene() {
   }
   endEl.querySelector('[data-close-end]').addEventListener('click', closeBoarding);
 
+  // Seconds of sitting in a waiting hall before the boarding call goes out.
+  const WAIT_CALL = 20;
+
   // Actions behind the security station and the boarding point at the parked plane.
   const game = {
+    tick(dt) {
+      const t = loadTicket();
+      if (!t || !t.securityPassed || t.called || t.boarded) return;
+      const before = Math.floor(t.waited || 0);
+      t.waited = (t.waited || 0) + dt;
+      if (t.waited >= WAIT_CALL) {
+        t.called = true;
+        saveTicket(t);
+        toast(`Boarding called for gate ${t.gate}. Head out to the plane.`);
+      } else if (Math.floor(t.waited) !== before) {
+        saveTicket(t);
+      }
+    },
     label(id) {
       const t = loadTicket();
       if (id === 'security') return t?.securityPassed ? 'Security cleared' : 'Security check';
-      if (id === 'boarding') return t?.boarded ? 'Boarded' : 'Board flight';
+      if (id === 'boarding') {
+        if (t?.boarded) return 'Boarded';
+        return t?.called ? 'Board flight' : 'Waiting for boarding call';
+      }
       return null;
     },
     run(id) {
@@ -139,6 +158,7 @@ export async function startScene() {
         if (!t) return toast('No ticket yet. Buy one at the desk.');
         if (!t.securityPassed) return toast('Clear security first.');
         if (t.boarded) return toast('You are already on board.');
+        if (!t.called) return toast('Boarding has not been called yet. Sit and wait in a waiting hall.');
         t.boarded = true;
         saveTicket(t);
         return showBoarding(t);
