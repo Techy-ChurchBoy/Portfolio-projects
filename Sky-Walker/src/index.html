@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sky Walker</title>
+<meta name="description" content="Sky Walker: a 3D flight deck concept. Descend into Murtala Muhammed International Airport, Lagos.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Sora:wght@600;700&display=swap">
+</head>
+<body>
+<div id="loader" role="status"><div class="loader-in"><div class="mark">skywalker<b>.</b></div><div class="bar"><i id="loadbar" style="width:100%"></i></div><small>Opening the terminal</small></div></div>
+<canvas id="stage" aria-hidden="true"></canvas>
+<div class="vignette"></div>
+
+<header class="top">
+  <a class="brand" href="#hero" aria-label="Sky Walker home">skywalker<b>.</b></a>
+  <nav aria-label="Main"><a href="#booking">Book</a><a href="#board">Departures</a><a href="#services">Services</a><a href="#arrive">Club</a></nav>
+  <div class="tools"><button class="chip only3d" id="tWalk" aria-pressed="false">Walk</button><button class="chip" id="tLite" aria-pressed="false">Lite</button></div>
+</header>
+
+<div class="hint" id="hint" aria-hidden="true">Scroll to descend · Drag to look around</div>
+
+<div class="walk-toast" id="walkToast" role="status" hidden></div>
+<div class="walk-ui" id="walkUI" role="group" aria-label="Walk controls" hidden>
+  <div class="walk-prompt" id="walkPrompt" aria-live="polite" hidden></div>
+  <div class="pad">
+    <button type="button" data-k="turnL" style="grid-area:q" aria-label="Turn left">&#8634;</button>
+    <button type="button" data-k="f" style="grid-area:f" aria-label="Walk forward">&#9650;</button>
+    <button type="button" data-k="turnR" style="grid-area:e" aria-label="Turn right">&#8635;</button>
+    <button type="button" data-k="l" style="grid-area:l" aria-label="Walk left">&#9664;</button>
+    <button type="button" data-k="r" style="grid-area:r" aria-label="Walk right">&#9654;</button>
+    <button type="button" data-use style="grid-area:u" aria-label="Use nearby">E</button>
+    <button type="button" data-k="b" style="grid-area:b" aria-label="Walk back">&#9660;</button>
+  </div>
+  <button type="button" class="chip exit" data-exit>Exit walk</button>
+</div>
+
+<section class="boarding-end" id="boardingEnd" aria-label="Boarding pass" hidden>
+  <div class="panel">
+    <div class="kicker">Boarding</div>
+    <h2>You're on board</h2>
+    <div class="pass">
+      <div id="passRoute" class="pass-route"></div>
+      <div id="passMeta" class="pass-meta"></div>
+    </div>
+    <p class="note">Your progress is saved in this browser.</p>
+    <button type="button" class="btn amber" data-close-end style="margin-top:16px">Back to the apron</button>
+  </div>
+</section>
+
+<main id="main">
+  <section class="leg" id="hero">
+    <div class="hero-copy">
+      <div class="kicker">Now boarding from Lagos</div>
+      <h1>The world is closer than <em>you think.</em></h1>
+      <p>Flights, hotels, visas and holidays. Descend into Murtala Muhammed International, Lagos, and book your next trip.</p>
+      <div class="cta-row"><a class="btn amber" href="#booking">Enter the terminal</a><a class="btn ghost" href="#board">See departures</a></div>
+    </div>
+  </section>
+
+  <section class="leg right" id="booking">
+    <div class="panel wide">
+      <button type="button" class="panel-close" data-close>Close</button>
+      <div class="kicker">Departure hall</div>
+      <h2>Where are you flying?</h2>
+      <p class="sub">Search flights and holidays from the check-in desk.</p>
+      <form id="searchForm" autocomplete="off" novalidate>
+        <div class="trip" id="tripRow">
+          <label><input type="radio" name="trip" value="Round trip" checked> Round trip</label>
+          <label><input type="radio" name="trip" value="One way"> One way</label>
+          <label><input type="radio" name="trip" value="Multi-city"> Multi-city</label>
+        </div>
+        <div class="fgrid">
+          <label>From<input id="from" list="airports" value="LOS" placeholder="City or airport"></label>
+          <label>To<input id="to" list="airports" placeholder="City or airport"></label>
+          <label>Depart<input id="dep" type="date"></label>
+          <label id="lRet">Return<input id="ret" type="date"></label>
+          <label>Travellers<select id="pax"><option>1 adult</option><option>2 adults</option><option>2 adults, 1 child</option><option>3 adults</option><option>4 adults</option></select></label>
+          <label>Cabin<select id="cabin"><option>Economy</option><option>Premium economy</option><option>Business</option><option>First</option></select></label>
+          <div class="full"><button class="btn amber" type="submit" style="width:100%;justify-content:center">File flight plan</button></div>
+        </div>
+        <div class="err" id="formErr" role="alert"></div>
+      </form>
+      <datalist id="airports"></datalist>
+      <div class="plan" id="plan" hidden>
+        <div class="route" id="planRoute"></div>
+        <div class="meta" id="planMeta"></div>
+        <button class="btn blue" type="button" id="continueBtn">Issue ticket</button>
+      </div>
+      <p class="note">Concept preview. Fares and availability shown are samples.</p>
+    </div>
+  </section>
+
+  <section class="leg" id="board">
+    <div class="panel board-panel">
+      <button type="button" class="panel-close" data-close>Close</button>
+      <div class="kicker">Live departures</div>
+      <h2>Pick a route from the board.</h2>
+      <p class="sub">Choose a destination and it fills the booking form. Sample routes shown.</p>
+      <div class="routes" id="routes"></div>
+      <div class="pay">
+        <div class="kicker" style="margin-top:18px">Pay in instalments</div>
+        <div class="slider"><label for="amt">Trip cost: <span id="amtOut"></span></label><input id="amt" type="range" min="100000" max="3000000" step="50000" value="900000"></div>
+        <div class="split" id="split"><button aria-pressed="false" data-n="3">3 months</button><button aria-pressed="true" data-n="4">4 months</button><button aria-pressed="false" data-n="6">6 months</button></div>
+        <div class="out" id="payOut"></div>
+        <p class="note">Illustration only. Sample figures.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="leg" id="services">
+    <div class="panel wide"><div class="kicker">Terminal services</div><h2>Everything for the trip.</h2><div class="svc" id="svcGrid"></div></div>
+  </section>
+
+  <section class="leg" id="arrive">
+    <div class="wrap">
+      <div class="prime">
+        <div><div class="kicker">Sky Club</div><h2>Fly like you planned it a year ago.</h2><p>Member pricing on flights, hotels and packages, with early access to deals.</p><a class="btn amber" href="#booking">Join Sky Club</a></div>
+        <div class="perks"><div><strong>Member prices</strong><span>Lower fares and rates for Prime members.</span></div><div><strong>App-only deals</strong><span>Extra savings on selected routes.</span></div><div><strong>Support that picks up</strong><span>A call centre and travel centres across Nigeria.</span></div></div>
+      </div>
+      <div class="faq">
+        <h2>Before you fly</h2>
+        <details><summary>How do I find the cheapest flight?</summary><p>Search flexible dates, compare airlines on the same route, and book early for peak seasons.</p></details>
+        <details><summary>Can I pay in instalments?</summary><p>Pay Small Small lets eligible customers split a booking into smaller payments. Terms are set at checkout.</p></details>
+        <details><summary>Do you help with visas?</summary><p>In this concept, yes: visa checklists and application support for popular destinations.</p></details>
+      </div>
+      <footer>
+        <div><strong style="color:var(--ink)">skywalker.</strong> Concept project. Nothing here is a live booking service.</div>
+        <div>3D built in Three.js with GSAP. Flight data shown is sample content. Aircraft model: “SD-800 Sky Dog Flight Simulator” by <a href="https://sketchfab.com/drivespace" target="_blank" rel="noopener">drivespace</a>, <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.</div>
+      </footer>
+    </div>
+  </section>
+</main>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

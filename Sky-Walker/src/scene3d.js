@@ -211,7 +211,7 @@ export async function startScene() {
     document.body.classList.toggle('walking', on);
     walkBtn.setAttribute('aria-pressed', String(on));
     walkBtn.textContent = on ? 'Fly' : 'Walk';
-    hint.textContent = on ? 'WASD to walk · Shift to run · E to use · Drag to look · Esc to exit' : hintText;
+    hint.textContent = on ? 'Drag to move · Right-drag or Q/E to look · Shift to run · E to use · Esc to exit' : hintText;
     hint.style.opacity = on ? 1 : scrollY > 80 ? 0 : 1;
   }
   walkBtn.addEventListener('click', () => setWalking(!walk.active));

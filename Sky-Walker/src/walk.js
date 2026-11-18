@@ -10,8 +10,10 @@ const SEAT_EYE = 0.6; // seated eye height
 const BODY = 1.2; // collision radius, about 2.4 m
 const WALL = 1; // half thickness of hall walls
 const DOOR = 6; // half width of each hall doorway (about 24 m across)
-const SPEED = 6; // units per second, about 12 m/s
+const SPEED = 12; // units per second, about 24 m/s
 const SPRINT = 2;
+const TURN = 2.4; // radians per second for Q and E
+const STICK_RADIUS = 90; // pixels of drag that count as full speed
 const FOV = 70;
 const SCRIPT_SPEED = 5; // units per second along a scripted route
 
@@ -33,6 +35,7 @@ const MOVE = {
   KeyW: 'f', ArrowUp: 'f', KeyS: 'b', ArrowDown: 'b',
   KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r',
   ShiftLeft: 'sprint', ShiftRight: 'sprint',
+  KeyQ: 'turnL', KeyE: 'turnR',
 };
 
 const box = (minX, maxX, minZ, maxZ) => ({ minX, maxX, minZ, maxZ });
@@ -236,21 +239,45 @@ export function createWalker({ canvas, spec, root, prompt, onExit, onOpen, game 
   root.querySelector('[data-use]')?.addEventListener('click', () => interact());
 
   // Drag to look.
+  // Drag to move (left button or touch): the drag's offset from where it began sets the direction and speed.
+  // Right-button drag looks around, and Q and E turn.
+  let stickOrigin = null;
+  let stick = { f: 0, s: 0 }; // -1..1, forward and right
+  canvas.addEventListener('contextmenu', (e) => {
+    if (s.active) e.preventDefault();
+  });
   canvas.addEventListener('pointerdown', (e) => {
     if (!s.active || s.paused) return;
-    s.drag = true;
-    s.sx = e.clientX;
-    s.sy = e.clientY;
     canvas.setPointerCapture(e.pointerId);
+    if (e.button === 2) {
+      s.drag = true;
+      s.sx = e.clientX;
+      s.sy = e.clientY;
+      return;
+    }
+    stickOrigin = { x: e.clientX, y: e.clientY };
+    stick = { f: 0, s: 0 };
   });
   canvas.addEventListener('pointermove', (e) => {
-    if (!s.active || !s.drag || s.paused) return;
-    s.yaw -= (e.clientX - s.sx) * 0.005;
-    s.pitch = clamp(s.pitch - (e.clientY - s.sy) * 0.004, -1.2, 1.2);
-    s.sx = e.clientX;
-    s.sy = e.clientY;
+    if (!s.active || s.paused) return;
+    if (s.drag) {
+      s.yaw -= (e.clientX - s.sx) * 0.005;
+      s.pitch = clamp(s.pitch - (e.clientY - s.sy) * 0.004, -1.2, 1.2);
+      s.sx = e.clientX;
+      s.sy = e.clientY;
+    } else if (stickOrigin) {
+      const dx = e.clientX - stickOrigin.x;
+      const dy = e.clientY - stickOrigin.y;
+      const r = Math.hypot(dx, dy) || 1;
+      const k = Math.min(r, STICK_RADIUS) / (STICK_RADIUS * r);
+      stick = { f: -dy * k, s: dx * k };
+    }
   });
-  const endDrag = () => (s.drag = false);
+  const endDrag = () => {
+    s.drag = false;
+    stickOrigin = null;
+    stick = { f: 0, s: 0 };
+  };
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
 
@@ -298,9 +325,12 @@ export function createWalker({ canvas, spec, root, prompt, onExit, onOpen, game 
     update(dt, camera) {
       if (script) stepScript(dt);
       const frozen = s.paused || s.seated || !!script;
-      const fwd = frozen ? 0 : (held.has('f') ? 1 : 0) - (held.has('b') ? 1 : 0);
-      const side = frozen ? 0 : (held.has('r') ? 1 : 0) - (held.has('l') ? 1 : 0);
-      const len = Math.hypot(fwd, side) || 1;
+      if (!frozen) s.yaw += ((held.has('turnL') ? 1 : 0) - (held.has('turnR') ? 1 : 0)) * TURN * dt;
+      const keyF = (held.has('f') ? 1 : 0) - (held.has('b') ? 1 : 0);
+      const keyS = (held.has('r') ? 1 : 0) - (held.has('l') ? 1 : 0);
+      const fwd = frozen ? 0 : clamp(keyF + stick.f, -1, 1);
+      const side = frozen ? 0 : clamp(keyS + stick.s, -1, 1);
+      const len = Math.max(1, Math.hypot(fwd, side)); // partial drags stay partial
       const speed = SPEED * (held.has('sprint') ? SPRINT : 1);
       const sin = Math.sin(s.yaw);
       const cos = Math.cos(s.yaw);
