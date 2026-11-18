@@ -249,9 +249,19 @@ body.walking .brand{pointer-events:none}
 body.walking #stage{touch-action:none;cursor:grab}
 body.walking .hint{top:74px;bottom:auto}
 .walk-ui{position:fixed;inset:auto 0 0 0;z-index:30;display:flex;justify-content:space-between;align-items:flex-end;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));pointer-events:none}
-.walk-ui .pad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);grid-template-areas:". f ." "l . r" ". b .";gap:6px;pointer-events:auto}
+.walk-ui .pad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);grid-template-areas:". f ." "l u r" ". b .";gap:6px;pointer-events:auto}
 .walk-ui .pad button{width:52px;height:52px;border-radius:14px;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:600 16px var(--f-body);backdrop-filter:blur(8px);touch-action:none;user-select:none;-webkit-user-select:none}
 .walk-ui .pad button:active{background:var(--blue);border-color:var(--blue-hi)}
 .walk-ui .exit{pointer-events:auto;margin-bottom:4px}
 @media (hover:hover) and (pointer:fine){.walk-ui .pad{display:none}}
 body.lite .walk-ui{display:none!important}
+
+/* Interaction prompt and page panels opened from inside the walk. */
+.walk-prompt{position:absolute;left:50%;bottom:132px;transform:translateX(-50%);white-space:nowrap;font:600 13px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:10px 16px;border-radius:99px;background:var(--amber);color:var(--amber-ink);box-shadow:0 8px 24px rgba(0,0,0,.35);pointer-events:none}
+.panel-close{margin-top:14px;font:500 12px var(--f-mono);letter-spacing:.04em;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--glass);color:var(--ink);cursor:pointer}
+body.panel-open{overflow:hidden}
+body.panel-open .walk-ui,body.panel-open .hint{display:none}
+body.panel-open main{visibility:visible}
+body.panel-open main>.leg{visibility:hidden}
+body.panel-open main>.leg.open{visibility:visible;position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;margin:0;background:rgba(3,7,18,.6);pointer-events:auto;overflow:auto;min-height:0}
+body.panel-open main>.leg.open>.panel{max-height:calc(100vh - 48px);overflow:auto}

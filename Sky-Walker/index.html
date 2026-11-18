@@ -22,10 +22,12 @@
 <div class="hint" id="hint" aria-hidden="true">Scroll to descend · Drag to look around</div>
 
 <div class="walk-ui" id="walkUI" role="group" aria-label="Walk controls" hidden>
+  <div class="walk-prompt" id="walkPrompt" aria-live="polite" hidden></div>
   <div class="pad">
     <button type="button" data-k="f" style="grid-area:f" aria-label="Walk forward">&#9650;</button>
     <button type="button" data-k="l" style="grid-area:l" aria-label="Walk left">&#9664;</button>
     <button type="button" data-k="r" style="grid-area:r" aria-label="Walk right">&#9654;</button>
+    <button type="button" data-use style="grid-area:u" aria-label="Use nearby">E</button>
     <button type="button" data-k="b" style="grid-area:b" aria-label="Walk back">&#9660;</button>
   </div>
   <button type="button" class="chip exit" data-exit>Exit walk</button>
@@ -43,6 +45,7 @@
 
   <section class="leg right" id="booking">
     <div class="panel wide">
+      <button type="button" class="panel-close" data-close>Close</button>
       <div class="kicker">Departure hall</div>
       <h2>Where are you flying?</h2>
       <p class="sub">Search flights and holidays from the check-in desk.</p>
@@ -75,6 +78,7 @@
 
   <section class="leg" id="board">
     <div class="panel board-panel">
+      <button type="button" class="panel-close" data-close>Close</button>
       <div class="kicker">Live departures</div>
       <h2>Pick a route from the board.</h2>
       <p class="sub">Choose a destination and it fills the booking form. Sample routes shown.</p>

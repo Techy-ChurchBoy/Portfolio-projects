@@ -70,20 +70,47 @@ export async function startScene() {
   const hint = $('#hint');
   const hintText = hint.textContent;
   const walkBtn = $('#tWalk');
+  // Page panels (booking, departures) open as windows over the walk when the visitor uses a desk or the board.
+  const panels = { booking: $('#booking'), board: $('#board') };
+  let openPanel = null;
+  function showPanel(id) {
+    if (!panels[id] || openPanel) return;
+    openPanel = id;
+    panels[id].classList.add('open');
+    document.body.classList.add('panel-open');
+    walk.pause(true);
+    panels[id].querySelector('input, select, button')?.focus({ preventScroll: true });
+  }
+  function closePanel() {
+    if (!openPanel) return;
+    panels[openPanel].classList.remove('open');
+    document.body.classList.remove('panel-open');
+    openPanel = null;
+    walk.pause(false);
+  }
+  document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closePanel));
+
   const walk = createWalker({
     canvas,
     spec: LOS,
     root: $('#walkUI'),
-    onExit: () => setWalking(false),
+    prompt: $('#walkPrompt'),
+    onOpen: showPanel,
+    onExit: () => {
+      if (openPanel) closePanel();
+      else if (walk.seated) walk.stand();
+      else setWalking(false);
+    },
   });
   function setWalking(on) {
     if (on === walk.active) return;
+    closePanel();
     if (on) walk.enable();
     else walk.disable();
     document.body.classList.toggle('walking', on);
     walkBtn.setAttribute('aria-pressed', String(on));
     walkBtn.textContent = on ? 'Fly' : 'Walk';
-    hint.textContent = on ? 'WASD or arrows to walk · Shift to run · Drag to look · Esc to exit' : hintText;
+    hint.textContent = on ? 'WASD to walk · Shift to run · E to use · Drag to look · Esc to exit' : hintText;
     hint.style.opacity = on ? 1 : scrollY > 80 ? 0 : 1;
   }
   walkBtn.addEventListener('click', () => setWalking(!walk.active));
