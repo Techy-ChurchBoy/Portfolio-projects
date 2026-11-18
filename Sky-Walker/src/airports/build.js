@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { UNIT_M } from './los.js';
 import { buildHall } from './hall.js';
+import { buildWaitingHall } from './waiting.js';
 
 // Turns an airport spec (see los.js) into a Three.js group.
 // To add another airport, write a new spec and pass it here.
@@ -155,33 +156,11 @@ function buildTower(t) {
 }
 
 function buildBlockTerminal(t) {
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(t.w, t.h, t.d),
-    new THREE.MeshStandardMaterial({ color: t.color ?? 0xb7c3dc, roughness: 0.55, metalness: 0.25 }),
-  );
-  body.position.y = t.h / 2;
-  g.add(body);
-
-  const roof = new THREE.Mesh(
-    new THREE.BoxGeometry(t.w + 6, 3, t.d + 6),
-    new THREE.MeshStandardMaterial({ color: 0x0d1830, roughness: 0.6, metalness: 0.4 }),
-  );
-  roof.position.y = t.h + 1.5;
-  g.add(roof);
-
-  // Glazing band so the block reads as a terminal, not a warehouse.
-  const band = new THREE.Mesh(
-    new THREE.BoxGeometry(t.w + 0.4, t.h * 0.4, t.d + 0.4),
-    new THREE.MeshStandardMaterial({ color: 0x7fb0ff, emissive: 0x2a4a8a, emissiveIntensity: 0.6, roughness: 0.15, metalness: 0.4 }),
-  );
-  band.position.y = t.h * 0.42;
-  g.add(band);
-
+  // Non-hero terminals are waiting halls: glass shell, doorway, benches (see waiting.js).
+  const g = buildWaitingHall(t);
   const label = labelSprite([t.name.toUpperCase(), t.note], 150);
   label.position.set(0, t.h + 40, 0);
   g.add(label);
-
   g.position.set(t.x, 0, t.z);
   return g;
 }

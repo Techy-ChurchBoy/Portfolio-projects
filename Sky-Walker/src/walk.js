@@ -3,6 +3,8 @@
 // Mouse: drag to look. Touch: the on-screen pad walks, and dragging the view looks around.
 // Collisions and interaction spots come from the airport spec (buildColliders) and INTERIOR below.
 
+import { waitingLayout } from './airports/waiting.js';
+
 const EYE = 0.9; // eye height in world units (1 unit = 2 m), about 1.8 m
 const SEAT_EYE = 0.6; // seated eye height
 const BODY = 1.2; // collision radius, about 2.4 m
@@ -36,16 +38,20 @@ const box = (minX, maxX, minZ, maxZ) => ({ minX, maxX, minZ, maxZ });
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const isTyping = (el) => !!el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName);
 
-// Hall walls with a doorway in the west (airside) and east (landside) walls.
-function addHallWalls(boxes, t) {
+// Walls with a doorway in the west (airside) wall, and in the east (landside) wall unless east is false.
+function addHallWalls(boxes, t, { east = true } = {}) {
   const x0 = t.x - t.w / 2;
   const x1 = t.x + t.w / 2;
   const z0 = t.z - t.d / 2;
   const z1 = t.z + t.d / 2;
   const cz = t.z;
-  for (const x of [x0, x1]) {
-    boxes.push(box(x - WALL, x + WALL, z0 - WALL, cz - DOOR));
-    boxes.push(box(x - WALL, x + WALL, cz + DOOR, z1 + WALL));
+  boxes.push(box(x0 - WALL, x0 + WALL, z0 - WALL, cz - DOOR));
+  boxes.push(box(x0 - WALL, x0 + WALL, cz + DOOR, z1 + WALL));
+  if (east) {
+    boxes.push(box(x1 - WALL, x1 + WALL, z0 - WALL, cz - DOOR));
+    boxes.push(box(x1 - WALL, x1 + WALL, cz + DOOR, z1 + WALL));
+  } else {
+    boxes.push(box(x1 - WALL, x1 + WALL, z0 - WALL, z1 + WALL));
   }
   boxes.push(box(x0 - WALL, x1 + WALL, z0 - WALL, z0 + WALL)); // north
   boxes.push(box(x0 - WALL, x1 + WALL, z1 - WALL, z1 + WALL)); // south
@@ -61,7 +67,8 @@ export function buildColliders(spec) {
       for (const z of INTERIOR.benches) boxes.push(box(56, 62, z - 4, z + 4));
       for (const x of INTERIOR.columnsX) for (const z of INTERIOR.columnsZ) boxes.push(box(x - 2.2, x + 2.2, z - 2.2, z + 2.2));
     } else {
-      boxes.push(box(t.x - t.w / 2, t.x + t.w / 2, t.z - t.d / 2, t.z + t.d / 2));
+      addHallWalls(boxes, t, { east: false });
+      for (const b of waitingLayout(t).benches) boxes.push(box(b.x - 6, b.x + 6, b.z - 1.5, b.z + 1.5));
     }
   }
   const { x: tx, z: tz } = spec.tower;
@@ -81,6 +88,11 @@ function buildInteractables(spec) {
   ];
   for (const z of INTERIOR.benches) {
     items.push({ id: `bench${z}`, label: 'Sit down', kind: 'sit', at: { x: 59, z }, yaw: Math.PI / 2, range: 6 });
+  }
+  for (const t of spec.terminals.filter((x) => !x.hero)) {
+    waitingLayout(t).benches.forEach((b, i) => {
+      items.push({ id: `wait-${t.name}-${i}`, label: 'Sit down', kind: 'sit', at: { x: b.x, z: b.z }, yaw: Math.PI, range: 6 });
+    });
   }
   items.push({ id: 'security', label: 'Security check', kind: 'action', at: { x: -102, z: 0 }, range: 7 });
   items.push({ id: 'boarding', label: 'Board flight', kind: 'action', at: { x: stand[0] + 30, z: stand[1] }, range: 9 });
