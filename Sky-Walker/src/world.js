@@ -76,6 +76,9 @@ export function buildWorld(spec, aircraftModel) {
     const holder = new THREE.Group();
     if (aircraftModel) {
       const model = aircraftModel.clone(true);
+      // The GLB's nose points down -Z (nose gear at z≈-14); turn it so the nose is +Z,
+      // the convention used for headings and lamps below.
+      model.rotation.y = Math.PI;
       model.traverse((o) => {
         if (o.isMesh) o.frustumCulled = false;
       });
@@ -127,8 +130,8 @@ export function buildWorld(spec, aircraftModel) {
     const holder = new THREE.Group();
     holder.add(makePlane(1));
     const lamps = aircraftModel
-      ? [[-34, 0, 0, 0xff3b3b], [34, 0, 0, 0x3bff7a], [0, 6, -34, 0xffffff]]
-      : [[-14, 0, 1, 0xff3b3b], [14, 0, 1, 0x3bff7a], [0, 1.8, -12, 0xffffff]];
+      ? [[34, 0, 0, 0xff3b3b], [-34, 0, 0, 0x3bff7a], [0, 6, -34, 0xffffff]]
+      : [[14, 0, 1, 0xff3b3b], [-14, 0, 1, 0x3bff7a], [0, 1.8, -12, 0xffffff]];
     lamps.forEach(([x, y, z, color], i) => {
       const l = lamp(color);
       l.position.set(x, y, z);
