@@ -38,6 +38,9 @@ export const LOS = {
 
   tower: { x: 180, z: -150, height: 92 },
 
+  // Cargo sheds: [x, z, width, depth].
+  sheds: [[260, -520, 120, 60], [260, -610, 120, 60], [270, -720, 130, 70]],
+
   // Rectangle the city generator keeps clear of.
   bounds: { minX: -1050, maxX: 360, minZ: -1500, maxZ: 700 },
 

@@ -215,7 +215,7 @@ export function buildAirport(spec, { makePlane, brand } = {}) {
 
   // Cargo sheds beyond the north terminals.
   const shedMat = new THREE.MeshStandardMaterial({ color: 0x2b3a5c, roughness: 0.7, metalness: 0.3 });
-  for (const [x, z, w, d] of [[260, -520, 120, 60], [260, -610, 120, 60], [270, -720, 130, 70]]) {
+  for (const [x, z, w, d] of spec.sheds) {
     const shed = new THREE.Mesh(new THREE.BoxGeometry(w, 20, d), shedMat);
     shed.position.set(x, 10, z);
     group.add(shed);

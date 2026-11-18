@@ -4,6 +4,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import gsap from 'gsap';
 import { LOS } from './airports/los.js';
 import { buildWorld } from './world.js';
+import { createWalker } from './walk.js';
 import { $ } from './ui.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -65,6 +66,28 @@ export async function startScene() {
   const board = world.hall.board;
   board.draw(0);
 
+  // Walk mode: a ground-level first-person camera on the apron.
+  const hint = $('#hint');
+  const hintText = hint.textContent;
+  const walkBtn = $('#tWalk');
+  const walk = createWalker({
+    canvas,
+    spec: LOS,
+    root: $('#walkUI'),
+    onExit: () => setWalking(false),
+  });
+  function setWalking(on) {
+    if (on === walk.active) return;
+    if (on) walk.enable();
+    else walk.disable();
+    document.body.classList.toggle('walking', on);
+    walkBtn.setAttribute('aria-pressed', String(on));
+    walkBtn.textContent = on ? 'Fly' : 'Walk';
+    hint.textContent = on ? 'WASD or arrows to walk · Shift to run · Drag to look · Esc to exit' : hintText;
+    hint.style.opacity = on ? 1 : scrollY > 80 ? 0 : 1;
+  }
+  walkBtn.addEventListener('click', () => setWalking(!walk.active));
+
   // Scroll choreography: each page section is a camera stop.
   const el = (id) => document.getElementById(id);
   const stops = () => {
@@ -109,6 +132,7 @@ export async function startScene() {
 
   // Drag to look around.
   canvas.addEventListener('pointerdown', (e) => {
+    if (walk.active) return;
     look.drag = true;
     look.sx = e.clientX;
     look.sy = e.clientY;
@@ -116,7 +140,7 @@ export async function startScene() {
     canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove', (e) => {
-    if (!look.drag) return;
+    if (walk.active || !look.drag) return;
     look.tyaw = clamp(look.tyaw - (e.clientX - look.sx) * 0.0042, -1.1, 1.1);
     look.tpitch = clamp(look.tpitch - (e.clientY - look.sy) * 0.003, -0.5, 0.5);
     look.sx = e.clientX;
@@ -161,21 +185,25 @@ export async function startScene() {
     look.yaw += (look.tyaw - look.yaw) * Math.min(1, dt * 6);
     look.pitch += (look.tpitch - look.pitch) * Math.min(1, dt * 6);
 
-    const shot = sample(scroll.y);
-    const bob = reduceMotion ? 0 : Math.sin(secs * 0.4) * 0.25;
-    pos.fromArray(shot.pos);
-    tgt.fromArray(shot.tgt);
-    const dir = tgt.clone().sub(pos);
-    const dist = dir.length();
-    dir.normalize();
-    const yaw = Math.atan2(dir.x, dir.z) + look.yaw;
-    const pitch = Math.asin(clamp(dir.y, -1, 1)) + look.pitch;
-    const view = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
-    camera.position.copy(pos);
-    camera.position.y += bob;
-    camera.lookAt(camera.position.clone().add(view.multiplyScalar(dist)));
-    camera.fov = shot.fov;
-    camera.updateProjectionMatrix();
+    if (walk.active) {
+      walk.update(dt, camera);
+    } else {
+      const shot = sample(scroll.y);
+      const bob = reduceMotion ? 0 : Math.sin(secs * 0.4) * 0.25;
+      pos.fromArray(shot.pos);
+      tgt.fromArray(shot.tgt);
+      const dir = tgt.clone().sub(pos);
+      const dist = dir.length();
+      dir.normalize();
+      const yaw = Math.atan2(dir.x, dir.z) + look.yaw;
+      const pitch = Math.asin(clamp(dir.y, -1, 1)) + look.pitch;
+      const view = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
+      camera.position.copy(pos);
+      camera.position.y += bob;
+      camera.lookAt(camera.position.clone().add(view.multiplyScalar(dist)));
+      camera.fov = shot.fov;
+      camera.updateProjectionMatrix();
+    }
     // Hide the outside terminal labels while the camera is inside the hero hall.
     const hall = LOS.terminals.find((t) => t.hero);
     const inside =

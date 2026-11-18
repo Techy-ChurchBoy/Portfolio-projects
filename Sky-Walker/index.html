@@ -16,10 +16,20 @@
 <header class="top">
   <a class="brand" href="#hero" aria-label="Sky Walker home">skywalker<b>.</b></a>
   <nav aria-label="Main"><a href="#booking">Book</a><a href="#board">Departures</a><a href="#services">Services</a><a href="#arrive">Club</a></nav>
-  <div class="tools"><button class="chip" id="tLite" aria-pressed="false">Lite</button></div>
+  <div class="tools"><button class="chip only3d" id="tWalk" aria-pressed="false">Walk</button><button class="chip" id="tLite" aria-pressed="false">Lite</button></div>
 </header>
 
 <div class="hint" id="hint" aria-hidden="true">Scroll to descend · Drag to look around</div>
+
+<div class="walk-ui" id="walkUI" role="group" aria-label="Walk controls" hidden>
+  <div class="pad">
+    <button type="button" data-k="f" style="grid-area:f" aria-label="Walk forward">&#9650;</button>
+    <button type="button" data-k="l" style="grid-area:l" aria-label="Walk left">&#9664;</button>
+    <button type="button" data-k="r" style="grid-area:r" aria-label="Walk right">&#9654;</button>
+    <button type="button" data-k="b" style="grid-area:b" aria-label="Walk back">&#9660;</button>
+  </div>
+  <button type="button" class="chip exit" data-exit>Exit walk</button>
+</div>
 
 <main id="main">
   <section class="leg" id="hero">
